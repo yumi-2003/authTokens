@@ -8,7 +8,7 @@ export const registerUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const res = await axiosInstance.post("auth/register", data);
+      const res = await axiosInstance.post("/auth/register", data);
       return res.data;
     } catch (error: any) {
       return rejectWithValue(
@@ -19,12 +19,16 @@ export const registerUser = createAsyncThunk(
 );
 
 export const verifyOtp = createAsyncThunk(
-  "auh/verifyOtp",
+  "auth/verifyOtp",
   async (data: { email: string; otp: string }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post("auth/verify-otp", data);
+      const res = await axiosInstance.post("/auth/verify-otp", data, {
+        headers: { "Content-Type": "application/json" },
+      });
+
       return res.data;
     } catch (error: any) {
+      console.error("OTP verification error:", error);
       return rejectWithValue(
         error.response?.data?.message || "OTP verification failed"
       );
@@ -36,7 +40,7 @@ export const loginUser = createAsyncThunk(
   "auth/login",
   async (data: { email: string; password: string }, { rejectWithValue }) => {
     try {
-      const res = await axiosInstance.post("auth/login", data);
+      const res = await axiosInstance.post("/auth/login", data);
       return res.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Login Failed");

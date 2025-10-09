@@ -21,6 +21,7 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      //register
       .addCase(registerUser.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -32,15 +33,39 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+      //OTP verify
+      .addCase(verifyOtp.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(verifyOtp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.token = action.payload.token;
         localStorage.setItem("token", action.payload.token);
       })
+      //login
+      .addCase(loginUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(loginUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.user = action.payload.user;
         state.token = action.payload.token;
         localStorage.setItem("token", action.payload.token);
+      })
+      //google login
+      .addCase(googleLogin.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(googleLogin.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       })
       .addCase(googleLogin.fulfilled, (state, action) => {
         state.user = action.payload.user;

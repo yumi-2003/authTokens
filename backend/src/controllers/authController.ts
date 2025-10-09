@@ -8,7 +8,6 @@ import admin from "../config/firebase";
 import jwt from "jsonwebtoken";
 const validator = require("validator");
 
-// REGISTER USER
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -16,75 +15,81 @@ export const registerUser = async (req: Request, res: Response) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
 
-    if (!validator.isEmail(email)) {
-      return res.status(400).json({ message: "Email is not valid" });
-    }
-    if (!validator.isStrongPassword(password)) {
-      return res.status(400).json({ message: "Password is not strong enough" });
-    }
+    if (!validator.isEmail(email))
+      return res.status(400).json({ message: "Invalid email address" });
 
-    //check user aleardy exist
+    if (!validator.isStrongPassword(password))
+      return res.status(400).json({ message: "Password is not strong enough" });
+
+    // Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
 
-    //hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    //create new user
+    // Create and save user first
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
       isVerified: false,
     });
+    await newUser.save();
 
-    //generate OTP
+    // Generate OTP (6 digits)
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const otp = new Otp({
+
+    const otpDoc = new Otp({
       userId: newUser._id,
       code: otpCode,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
-    await otp.save();
-    // send OTP email
+    await otpDoc.save();
+
+    // Send OTP email
     await sentOtpEmail(email, otpCode);
-    const token = generateToken(newUser._id, newUser.role, newUser.name);
-    res.status(201).json({
-      message: "User registered successfully, OTP sent to email",
-      token,
-      user: { id: newUser._id, name: newUser.name, email: newUser.email },
-    });
+
+    return res
+      .status(201)
+      .json({ message: "User registered. OTP sent to email.", email });
   } catch (error) {
-    console.error(error);
+    console.error("Register error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-//verify OTP
+//  Verify OTP
 export const verifyOtp = async (req: Request, res: Response) => {
   try {
-    const { email, otpCode } = req.body;
+    const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
-    const otpSave = await Otp.findOne({
+
+    const otpDoc = await Otp.findOne({
       userId: user._id,
-      code: otpCode,
+      code: otp,
       used: false,
       expiresAt: { $gt: new Date() },
     });
-    if (!otpSave) {
-      return res.status(400).json({ message: "Invalid or expried OTP" });
-    }
-    otpSave.used = true;
-    await otpSave.save();
+    await otpDoc?.save();
+
+    if (!otpDoc)
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+
+    // Mark OTP used and user verified
+    otpDoc.used = true;
+    await otpDoc.save();
+
     user.isVerified = true;
     await user.save();
-    res.status(200).json({ message: "OTP verified successfully!" });
+
+    return res.status(200).json({ message: "OTP verified successfully!" });
   } catch (error) {
-    res.status(500).json({ message: "Sever error" });
+    console.error("Verify OTP error:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 

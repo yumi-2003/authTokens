@@ -1,8 +1,16 @@
+import { Routes, Route, Navigate } from "react-router-dom";
+import SignupPage from "./pages/SignupPage";
+// import LoginPage from "./pages/LoginPage";
+import OtpPage from "./pages/OtpPage";
+
 function App() {
   return (
-    <>
-      <h2 className="text-blue font-bold">Hello World</h2>
-    </>
+    <Routes>
+      <Route path="/" element={<Navigate to="/signup" />} />
+      <Route path="/signup" element={<SignupPage />} />
+      {/* <Route path="/login" element={<LoginPage />} /> */}
+      <Route path="/verify-otp" element={<OtpPage />} />
+    </Routes>
   );
 }
 
