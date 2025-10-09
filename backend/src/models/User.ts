@@ -1,10 +1,10 @@
-// src/models/User.ts
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   name: string;
   email: string;
-  password?: string;
+  password: string;
   googleId?: string;
   role: "user" | "admin";
   isVerified: boolean;
@@ -16,7 +16,7 @@ const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String },
+    password: { type: String, required: true },
     googleId: { type: String, default: null },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     isVerified: { type: Boolean, default: false },
@@ -26,4 +26,4 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-export default mongoose.model<IUser>("User", UserSchema);
+export const User = mongoose.model<IUser>("User", UserSchema);
