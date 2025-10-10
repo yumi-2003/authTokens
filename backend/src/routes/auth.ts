@@ -5,6 +5,7 @@ import {
   getMe,
   verifyOtp,
   googleLogin,
+  resendOtp,
 } from "../controllers/authController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -18,5 +19,7 @@ router.post("/google", googleLogin);
 router.post("/login", loginUser);
 //get /api/auth/me
 router.get("/me", authMiddleware, getMe);
+//post /api/auth/resend-otp
+router.post("/resend-otp", resendOtp);
 
 export default router;

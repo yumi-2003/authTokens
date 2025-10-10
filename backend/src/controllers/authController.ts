@@ -6,11 +6,12 @@ import Otp from "../models/Otp";
 import { sentOtpEmail } from "../config/nodemailer";
 import admin from "../config/firebase";
 import jwt from "jsonwebtoken";
+import { emit } from "process";
 const validator = require("validator");
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
@@ -34,6 +35,7 @@ export const registerUser = async (req: Request, res: Response) => {
       name,
       email,
       password: hashedPassword,
+      role,
       isVerified: false,
     });
     await newUser.save();
@@ -198,5 +200,38 @@ export const googleLogin = async (req: Request, res: Response) => {
   } catch (error) {
     console.log("Google login error: ", error);
     res.json({ message: "Invalid Google token" });
+  }
+};
+
+//resent otp
+export const resendOtp = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (user.isVerified)
+      return res.status(400).json({ message: "User already verified" });
+    //delte old opts for this user
+    await Otp.deleteMany({ userId: user._id });
+    //generate new OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    //save opt with 10 min expiry
+    const otpDoc = new Otp({
+      userId: user._id,
+      code: otpCode,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    });
+    await otpDoc.save();
+    //send via email
+    await sentOtpEmail(email, otpCode);
+    res
+      .status(200)
+      .json({
+        message: "New OTP sent to your emaial. it will exprie in 10 mins",
+      });
+  } catch (error) {
+    console.log("Resend OTP error", error);
+    res.status(500).json({ message: "Sever error" });
   }
 };

@@ -61,3 +61,19 @@ export const googleLogin = createAsyncThunk(
     }
   }
 );
+
+export const resendOtp = createAsyncThunk(
+  "auth/resendOtp",
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post("/auth/resend-otp", {
+        email,
+      });
+      return response.data.message;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to resend OTP"
+      );
+    }
+  }
+);

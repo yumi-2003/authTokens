@@ -4,21 +4,93 @@ import { registerUser } from "../features/auth/authThunks";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Mail, Eye, EyeOff, ChevronDown } from "lucide-react";
 import GoogleLoginButton from "../components/GoogleLoginButton";
+import { toast } from "react-toastify";
+
+interface FormState {
+  name: string;
+  email: string;
+  password: string;
+  cpassword: string;
+  role: string;
+}
+
+interface ErrorState {
+  name?: string;
+  email?: string;
+  password?: string;
+  cpassword?: string;
+  role?: string;
+}
 
 const SignupPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading } = useAppSelector((state) => state.auth);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     name: "",
     email: "",
     password: "",
     cpassword: "",
-    role: "user",
+    role: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showCPassword, setShowCPassword] = useState(false);
+  const [errors, setErrors] = useState<ErrorState>({});
+  const [agreeTerms, setAgreeTerms] = useState(false);
+
+  //validation
+  const validateInputField = (
+    name: keyof FormState,
+    value: string | boolean
+  ): string | undefined => {
+    switch (name) {
+      case "name":
+        if (!value || (value as string).trim() === "")
+          return "Please fill your name!";
+        if ((value as string).trim().length < 2)
+          return "Name must be at least two characters";
+        break;
+
+      case "email":
+        if (!value || (value as string).trim() === "")
+          return "Please fill your email!";
+        if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(value as string))
+          return "Invalid Email";
+        break;
+
+      case "password":
+        if (!value || (value as string).trim() === "")
+          return "Please fill your password";
+        if (
+          !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(
+            value as string
+          )
+        )
+          return "Password must be at least 8 characters with uppercase, lowercase, number, and special characters";
+        break;
+
+      case "cpassword":
+        if (!value || (value as string).trim() === "")
+          return "Please fill your password";
+        if ((value as string) !== formData.password)
+          return "Password and confirm password do not match!";
+        break;
+    }
+    return undefined;
+  };
+
+  const validateAllFields = (): boolean => {
+    const newErrors: ErrorState = {
+      name: validateInputField("name", formData.name),
+      email: validateInputField("email", formData.email),
+      password: validateInputField("password", formData.password),
+      cpassword: validateInputField("cpassword", formData.password),
+      role: validateInputField("role", formData.role),
+    };
+    setErrors(newErrors);
+    return !Object.values(newErrors).some(Boolean);
+  };
 
   //handle input change
   const handleChange = (
@@ -30,9 +102,12 @@ const SignupPage: React.FC = () => {
   //handle submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateAllFields()) {
+      toast.error("Please fill all validate input fileds");
+      return;
+    }
 
     const result = await dispatch(registerUser(formData));
-
     // store email before resetting form
     const emailToVerify = formData.email;
 
@@ -42,13 +117,17 @@ const SignupPage: React.FC = () => {
       email: "",
       password: "",
       cpassword: "",
-      role: "user",
+      role: "",
     });
 
     // if registration success, navigate to OTP page
     if (result.type.endsWith("/fulfilled")) {
+      toast.success(
+        "Registration successful! Verfiy your email, OTP has already sent to your email"
+      );
       navigate("/verify-otp", { state: { email: emailToVerify } });
     } else {
+      toast.error("Registration failed!Please try again");
       console.error("Registration failed:", result);
     }
   };
@@ -75,6 +154,7 @@ const SignupPage: React.FC = () => {
               className="w-full p-3 pr-10 rounded-md border border-[var(--border-color)] bg-white text-[var(--text-body)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-bazaar-200)] transition"
             />
           </div>
+          {errors.name && <p className="text-red-500 text-xs">{errors.name}</p>}
 
           <div className="relative">
             <Mail
@@ -91,6 +171,9 @@ const SignupPage: React.FC = () => {
               className="w-full p-3 pr-10 rounded-md border border-[var(--border-color)] bg-white text-[var(--text-body)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-bazaar-200)] transition"
             />
           </div>
+          {errors.email && (
+            <p className="text-red-500 text-xs">{errors.email}</p>
+          )}
           {/* Password */}
           <div className="relative">
             <input
@@ -109,6 +192,9 @@ const SignupPage: React.FC = () => {
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </div>
           </div>
+          {errors.password && (
+            <p className="text-red-500 text-xs">{errors.password}</p>
+          )}
           {/* Confirm Password */}
           <div className="relative">
             <input
@@ -127,6 +213,9 @@ const SignupPage: React.FC = () => {
               {showCPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </div>
           </div>
+          {errors.cpassword && (
+            <p className="text-red-500 text-xs">{errors.cpassword}</p>
+          )}
 
           <div className="relative">
             <select
@@ -146,6 +235,30 @@ const SignupPage: React.FC = () => {
               size={18}
               className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-bazaar-500)] pointer-events-none"
             />
+          </div>
+          {errors.role && <p className="text-red-500 text-xs">{errors.role}</p>}
+
+          {/* terms and condition  */}
+          <div className="flex flex-1 items-center gap-1 mt-3">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreeTerms}
+              onChange={(e) => setAgreeTerms(e.target.checked)}
+              className="whitespace-nowrap accent-[var(--color-accent)]"
+            />
+            <label
+              htmlFor="terms"
+              className="whitespace-nowrap text-sm text-[var(--text-body)] select-none leading-none"
+            >
+              I agree to the{" "}
+              <Link
+                to="/terms"
+                className="text-[var(--color-link)] hover:underline font-medium"
+              >
+                Terms & Conditions
+              </Link>
+            </label>
           </div>
 
           {/* Register Button */}
