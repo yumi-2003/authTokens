@@ -1,1 +1,196 @@
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap');
 @import "tailwindcss";
+
+/* ============================
+   Global Design Variables
+============================ */
+:root {
+  /* Bazaar Core Palette */
+  --color-bazaar-50: #f9f7f7;
+  --color-bazaar-100: #f4eff0;
+  --color-bazaar-200: #eae1e2;
+  --color-bazaar-300: #d8c9cb;
+  --color-bazaar-400: #c2aaaf;
+  --color-bazaar-500: #9e7b82;
+  --color-bazaar-600: #906e77;
+  --color-bazaar-700: #775961;
+  --color-bazaar-800: #654c54;
+  --color-bazaar-900: #58434b;
+  --color-bazaar-950: #2f2226;
+
+  /* Base Colors (Light Mode) */
+  --bg-body: var(--color-bazaar-50);
+  --text-body: var(--color-bazaar-900);
+  --bg-card: var(--color-bazaar-100);
+  --bg-section-muted: var(--color-bazaar-200);
+  --border-color: var(--color-bazaar-300);
+
+  /* Accent / Interactive */
+  --color-accent: var(--color-bazaar-500);
+  --color-accent-hover: var(--color-bazaar-700);
+  --color-link: var(--color-bazaar-600);
+  --color-link-hover: var(--color-bazaar-800);
+  --color-shadow: rgba(158, 123, 130, 0.25);
+}
+
+/* ============================
+   Dark Mode Overrides
+============================ */
+body.dark-mode {
+  --bg-body: var(--color-bazaar-950);
+  --text-body: var(--color-bazaar-200);
+  --bg-card: var(--color-bazaar-900);
+  --bg-section-muted: var(--color-bazaar-800);
+  --border-color: var(--color-bazaar-700);
+
+  --color-accent: var(--color-bazaar-400);
+  --color-accent-hover: var(--color-bazaar-200);
+  --color-link: var(--color-bazaar-300);
+  --color-link-hover: var(--color-bazaar-100);
+  --color-shadow: rgba(240, 240, 240, 0.15);
+}
+
+/* ============================
+   Global Font & Body
+============================ */
+* {
+  font-family: 'Lato', sans-serif;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text-body);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* ============================
+   Buttons
+============================ */
+button,
+.btn,
+.btn-primary {
+  background-color: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+button:hover,
+.btn:hover,
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px var(--color-shadow);
+}
+
+/* ============================
+   Inputs and Forms
+============================ */
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #fff;
+  color: var(--text-body);
+  transition: all 0.2s ease-in-out;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-bazaar-200);
+}
+
+/* ============================
+   Links
+============================ */
+a {
+  color: var(--color-link);
+  font-weight: 500;
+  transition: color 0.2s ease-in-out;
+}
+
+a:hover {
+  color: var(--color-link-hover);
+}
+
+/* ============================
+   Cards and Containers
+============================ */
+.card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 8px var(--color-shadow);
+  padding: 1.5rem;
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.section-muted {
+  background-color: var(--bg-section-muted);
+}
+
+/* ============================
+   Navbar
+============================ */
+.navbar,
+nav {
+  background-color: var(--bg-card);
+  box-shadow: 0 2px 6px var(--color-shadow);
+  padding: 1rem 2rem;
+  transition: background-color 0.3s;
+}
+
+.navbar a,
+nav a {
+  color: var(--text-body);
+}
+
+.navbar a:hover,
+nav a:hover {
+  color: var(--color-accent);
+}
+
+.nav-link-white {
+  color: #fff;
+}
+
+.nav-link-white:hover {
+  color: var(--color-bazaar-200);
+}
+
+/* ============================
+   Dark Mode Extras
+============================ */
+body.dark-mode .card {
+  background-color: var(--bg-card);
+}
+
+body.dark-mode .navbar {
+  background-color: var(--color-bazaar-900);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* ============================
+   Smooth Transitions
+============================ */
+input,
+textarea,
+select,
+button,
+.card,
+.navbar,
+body {
+  transition: all 0.3s ease-in-out;
+}
