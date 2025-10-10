@@ -102,11 +102,20 @@ export const loginUser = async (req: Request, res: Response) => {
         .status(400)
         .json({ message: "Email and password are required" });
 
+    //check user exist
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
+    // check email is verified
+    if (!user.isVerified)
+      return res
+        .status(404)
+        .json({ message: "Please verify your email frist" });
+    // use google login
     if (!user.password)
-      return res.status(400).json({ message: "Google login only" });
-
+      return res
+        .status(400)
+        .json({ message: "Please use Google login for this account" });
+    //check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
@@ -137,21 +146,38 @@ export const getMe = (req: any, res: Response) => {
   });
 };
 
+// get user infor which is aleready authenticated
+export const getProfile = async (req: Request, res: Response) => {
+  try {
+    const user = await User.findById((req as any).user.id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (error) {
+    console.log("Profile fetach error:", error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 // google login firebase
 export const googleLogin = async (req: Request, res: Response) => {
   try {
     const { idToken } = req.body;
+    if (!idToken) return res.status(400).json({ message: "Missiong ID token" });
+
+    //verfiy token from firebase
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { email, name } = decodedToken;
 
     let user = await User.findOne({ email });
     if (!user) {
+      //new google signup
       user = await User.create({
         name,
         email,
         googleId: decodedToken.uid,
         isVerified: true,
       });
+      await user.save();
     }
 
     const token = jwt.sign(
@@ -159,7 +185,16 @@ export const googleLogin = async (req: Request, res: Response) => {
       process.env.JWT_SECRET as string,
       { expiresIn: "1h" }
     );
-    res.json({ message: "Google Login Successful", token, user });
+    res.status(200).json({
+      message: "Google authentication Successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
   } catch (error) {
     console.log("Google login error: ", error);
     res.json({ message: "Invalid Google token" });

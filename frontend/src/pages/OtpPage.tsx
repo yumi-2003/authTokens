@@ -16,7 +16,7 @@ const OtpPage: React.FC = () => {
     e.preventDefault();
     const result = await dispatch(verifyOtp({ email, otp }));
     if (verifyOtp.fulfilled.match(result)) {
-      navigate("/dashbaord");
+      navigate("/login");
     }
   };
   return (

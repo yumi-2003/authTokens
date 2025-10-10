@@ -3,6 +3,7 @@
     /* === File Structure === */
     "rootDir": "./src",
     "outDir": "./dist",
+    "typeRoots": ["./src/types", "./node_modules/@types"],
 
     /* === Module + Target === */
     "module": "commonjs",
