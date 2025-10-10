@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { loginUser } from "../features/auth/authThunks";
 import { useNavigate } from "react-router-dom";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const LoginPage = () => {
   const dispatch = useAppDispatch();
@@ -42,6 +43,7 @@ const LoginPage = () => {
           Don't have an account? Sign up
         </p>
       </form>
+      <GoogleLoginButton />
     </div>
   );
 };
