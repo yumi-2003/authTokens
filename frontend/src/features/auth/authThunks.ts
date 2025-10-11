@@ -1,6 +1,7 @@
-import { createAsyncThunk, isRejectedWithValue } from "@reduxjs/toolkit";
+import { createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../../api/axiosInstance";
 
+//register
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (
@@ -18,6 +19,7 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+//verify otp
 export const verifyOtp = createAsyncThunk(
   "auth/verifyOtp",
   async (data: { email: string; otp: string }, { rejectWithValue }) => {
@@ -36,6 +38,7 @@ export const verifyOtp = createAsyncThunk(
   }
 );
 
+//loginUser
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (data: { email: string; password: string }, { rejectWithValue }) => {
@@ -48,6 +51,7 @@ export const loginUser = createAsyncThunk(
   }
 );
 
+//google login via firebase
 export const googleLogin = createAsyncThunk(
   "auth/googleLogin",
   async (idToken: string, { rejectWithValue }) => {
@@ -62,6 +66,7 @@ export const googleLogin = createAsyncThunk(
   }
 );
 
+//resendotp if it is expired
 export const resendOtp = createAsyncThunk(
   "auth/resendOtp",
   async (email: string, { rejectWithValue }) => {
@@ -78,6 +83,7 @@ export const resendOtp = createAsyncThunk(
   }
 );
 
+//logout user and clear cookie
 export const logoutUser = createAsyncThunk(
   "auth/logout",
   async (_, { rejectWithValue }) => {
@@ -86,6 +92,39 @@ export const logoutUser = createAsyncThunk(
       return res.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Logout Failed");
+    }
+  }
+);
+
+//forgot password
+export const forgotPassword = createAsyncThunk(
+  "auth/forgotPassword",
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post("/auth/forgot-password", { email });
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to send OTP"
+      );
+    }
+  }
+);
+
+//reset password
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (
+    data: { email: string; otp: string; newPassword: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const res = await axiosInstance.post("/auth/reset-password", data);
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error.response?.data?.message || "Password reset failed"
+      );
     }
   }
 );

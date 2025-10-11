@@ -6,7 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import GoogleLoginButton from "../components/GoogleLoginButton";
 import { toast } from "react-toastify";
 
-const LoginPage = () => {
+const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { loading } = useAppSelector((state) => state.auth);
@@ -15,6 +15,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Validation logic
   const validateField = (name: string, value: string): string | null => {
     switch (name) {
       case "email":
@@ -34,26 +35,25 @@ const LoginPage = () => {
     }
   };
 
+  //  Handle login submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // validate before dispatch
     const emailError = validateField("email", email);
     const passwordError = validateField("password", password);
 
-    if (emailError) {
-      toast.error(emailError);
-      return;
-    }
-    if (passwordError) {
-      toast.error(passwordError);
-      return;
-    }
+    if (emailError) return toast.error(emailError);
+    if (passwordError) return toast.error(passwordError);
 
     const result = await dispatch(loginUser({ email, password }));
+
     if (loginUser.fulfilled.match(result)) {
       toast.success("Login successful!");
-      navigate("/dashboard");
+
+      // Redirect based on role
+      const loggedInUser = result.payload?.user;
+      if (loggedInUser?.role === "admin") navigate("/dashboard/admin");
+      else navigate("/dashboard/user");
     } else {
       toast.error("Invalid credentials. Please try again!");
     }
@@ -100,6 +100,16 @@ const LoginPage = () => {
             </div>
           </div>
 
+          {/* Forget password */}
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-[var(--color-accent)] hover:underline font-medium"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           {/* Login button */}
           <button
             type="submit"
@@ -119,6 +129,7 @@ const LoginPage = () => {
           <div className="flex-grow h-px bg-[var(--border-color)]"></div>
         </div>
 
+        {/* Google Login */}
         <GoogleLoginButton />
 
         {/* Signup link */}

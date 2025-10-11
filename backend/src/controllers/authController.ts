@@ -6,6 +6,7 @@ import Otp from "../models/Otp";
 import { sentOtpEmail } from "../config/nodemailer";
 import admin from "../config/firebase";
 import jwt from "jsonwebtoken";
+import { measureMemory } from "vm";
 const validator = require("validator");
 
 export const registerUser = async (req: Request, res: Response) => {
@@ -253,4 +254,61 @@ export const logoutUser = (req: Request, res: Response) => {
     console.log("Logout error: ", error);
   }
   res.status(500).json({ message: "Server Error" });
+};
+
+//forgot password
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    //delet old otp for this user
+    await Otp.deleteMany({ userId: user._id });
+    //generate otp
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    //save otp
+    const otpDoc = new Otp({
+      userId: user._id,
+      code: otpCode,
+      expiresAt: new Date(Date.now() + 1 * 60 * 1000),
+    });
+    await otpDoc.save();
+    //send email with otp
+    await sentOtpEmail(email, otpCode);
+    res.status(200).json({ message: "OTP send  to your email." });
+  } catch (error) {
+    console.log("Forgot Passwrod error", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+//reset password
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword)
+      return res.status(400).json({ message: "All fields are requried" });
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const otpDoc = await Otp.findOne({
+      userId: user._id,
+      code: otp,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    });
+    if (!otpDoc)
+      return res.status(400).json({ message: "Invalid or expried OTP" });
+    //update password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+    //Mark OTP as sued
+    otpDoc.used = true;
+    await otpDoc.save();
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Reset passwrod error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
 };

@@ -1,23 +1,49 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import SignupPage from "./pages/SignupPage";
+import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import UserDashboard from "./pages/Dashboards/UserDashboard";
+import AdminDashboard from "./pages/Dashboards/AdminDashboard";
+import Unauthorized from "./pages/Unauthorized";
+import ProtectedRoutes from "./components/ProtectedRoutes";
 import OtpPage from "./pages/OtpPage";
-import Dashboard from "./pages/Dashboard";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<Navigate to="/signup" />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/verify-otp" element={<OtpPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-      </Routes>
-      <ToastContainer position="top-right" autoClose={3000} />
-    </>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/verify-otp" element={<OtpPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* Role Protected Routes */}
+      <Route
+        path="/dashboard/user"
+        element={
+          <ProtectedRoutes allowedRoles={["user", "admin"]}>
+            <UserDashboard />
+          </ProtectedRoutes>
+        }
+      />
+
+      <Route
+        path="/dashboard/admin"
+        element={
+          <ProtectedRoutes allowedRoles={["admin"]}>
+            <AdminDashboard />
+          </ProtectedRoutes>
+        }
+      />
+
+      {/* Unauthorized Page */}
+      <Route path="/unauthorized" element={<Unauthorized />} />
+
+      {/* Default fallback */}
+      <Route path="*" element={<LoginPage />} />
+    </Routes>
   );
 }
 

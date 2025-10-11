@@ -7,6 +7,8 @@ import {
   googleLogin,
   resendOtp,
   logoutUser,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/authController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -24,5 +26,9 @@ router.post("/logout", logoutUser);
 router.get("/me", authMiddleware, getMe);
 //post /api/auth/resend-otp
 router.post("/resend-otp", resendOtp);
+//post /api/auth/forgot-password
+router.post("/forgot-password", forgotPassword);
+//post /api/auth/reset-password
+router.post("/reset-password", resetPassword);
 
 export default router;
