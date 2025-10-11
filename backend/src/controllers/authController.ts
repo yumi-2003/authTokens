@@ -6,7 +6,6 @@ import Otp from "../models/Otp";
 import { sentOtpEmail } from "../config/nodemailer";
 import admin from "../config/firebase";
 import jwt from "jsonwebtoken";
-import { emit } from "process";
 const validator = require("validator");
 
 export const registerUser = async (req: Request, res: Response) => {
@@ -46,7 +45,7 @@ export const registerUser = async (req: Request, res: Response) => {
     const otpDoc = new Otp({
       userId: newUser._id,
       code: otpCode,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+      expiresAt: new Date(Date.now() + 1 * 60 * 1000), // 1 minute
     });
     await otpDoc.save();
 
@@ -121,8 +120,15 @@ export const loginUser = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
-
+    //generate jwt
     const token = generateToken(user._id, user.role, user.name);
+    //send cookiet
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 24 * 60 * 60 * 1000,
+    });
 
     res.status(200).json({
       message: "Login successful",
@@ -220,18 +226,31 @@ export const resendOtp = async (req: Request, res: Response) => {
     const otpDoc = new Otp({
       userId: user._id,
       code: otpCode,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 1 * 60 * 1000), // 1 mins expires
     });
     await otpDoc.save();
     //send via email
     await sentOtpEmail(email, otpCode);
-    res
-      .status(200)
-      .json({
-        message: "New OTP sent to your emaial. it will exprie in 10 mins",
-      });
+    res.status(200).json({
+      message: "New OTP sent to your emaial. it will exprie in 1 min",
+    });
   } catch (error) {
     console.log("Resend OTP error", error);
     res.status(500).json({ message: "Sever error" });
   }
+};
+
+//logout User
+export const logoutUser = (req: Request, res: Response) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+    res.status(200).json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.log("Logout error: ", error);
+  }
+  res.status(500).json({ message: "Server Error" });
 };

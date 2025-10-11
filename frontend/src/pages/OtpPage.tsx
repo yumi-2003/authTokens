@@ -12,7 +12,7 @@ const OtpPage: React.FC = () => {
 
   const [email] = useState(emailFromState);
   const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
-  const [timer, setTimer] = useState(600);
+  const [timer, setTimer] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   //countdown timer
@@ -41,7 +41,7 @@ const OtpPage: React.FC = () => {
     try {
       await dispatch(resendOtp(email)).unwrap();
       toast.success("OTP resent successfully!");
-      setTimer(600);
+      setTimer(60);
     } catch (err: any) {
       toast.error(err || "Failed to resend OTP");
     }

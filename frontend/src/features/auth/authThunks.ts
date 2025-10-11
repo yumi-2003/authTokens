@@ -1,4 +1,4 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
+import { createAsyncThunk, isRejectedWithValue } from "@reduxjs/toolkit";
 import axiosInstance from "../../api/axiosInstance";
 
 export const registerUser = createAsyncThunk(
@@ -74,6 +74,18 @@ export const resendOtp = createAsyncThunk(
       return rejectWithValue(
         error.response?.data?.message || "Failed to resend OTP"
       );
+    }
+  }
+);
+
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await axiosInstance.post("auth/logout");
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Logout Failed");
     }
   }
 );

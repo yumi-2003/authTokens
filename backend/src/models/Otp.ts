@@ -22,7 +22,7 @@ const OtpSchema = new Schema<IOtp>(
 );
 
 // automatically delete OTPs after expiry (TTL index)
-// OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Otp = mongoose.model<IOtp>("Otp", OtpSchema);
 
