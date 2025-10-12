@@ -49,7 +49,10 @@ body.dark-mode {
   --color-link: var(--color-bazaar-300);
   --color-link-hover: var(--color-bazaar-100);
   --color-shadow: rgba(240, 240, 240, 0.15);
+  background-color: var(--bg-body);
+  color: var(--text-body);
 }
+
 
 /* ============================
    Global Font & Body

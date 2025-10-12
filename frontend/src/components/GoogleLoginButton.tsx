@@ -1,6 +1,6 @@
 import { auth, googleProvider } from "../firebase/config";
 import { signInWithPopup } from "firebase/auth";
-import { useAppDispatch } from "../app/hooks";
+import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { googleLogin } from "../features/auth/authThunks";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
@@ -14,8 +14,12 @@ const GoogleLoginButton = () => {
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
 
-      await dispatch(googleLogin(idToken)).unwrap();
-      navigate("/dashboard");
+      const data = await dispatch(googleLogin(idToken)).unwrap();
+      if (data.user.role === "admin") {
+        navigate("/dashboard/admin");
+      } else {
+        navigate("/dashboard/user");
+      }
     } catch (error: any) {
       console.error("Google login error:", error);
       alert(error.message || "Google login failed");
