@@ -10,9 +10,11 @@ import {
   resetPassword,
 } from "./authThunks";
 
+const savedToken = localStorage.getItem("token");
+
 const initialState: AuthState = {
   user: null,
-  token: null,
+  token: savedToken || null,
   loading: false,
   error: null,
   message: null,
@@ -21,7 +23,19 @@ const initialState: AuthState = {
 const authSlice = createSlice({
   name: "auth",
   initialState,
-  reducers: {},
+  reducers: {
+    //when refreshing token
+    setAccessToken: (state, action) => {
+      state.token = action.payload;
+      localStorage.setItem("token", action.payload);
+    },
+    //when logging out or invalidating session
+    clearAuth: (state) => {
+      state.user = null;
+      state.token = null;
+      localStorage.removeItem("token");
+    },
+  },
   extraReducers: (builder) => {
     builder
       //register
@@ -114,4 +128,5 @@ const authSlice = createSlice({
       });
   },
 });
+export const { setAccessToken, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

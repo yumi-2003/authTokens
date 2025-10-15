@@ -8,42 +8,46 @@ import AdminDashboard from "./pages/Dashboards/AdminDashboard";
 import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import OtpPage from "./pages/OtpPage";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/signup" element={<SignupPage />} />
-      <Route path="/verify-otp" element={<OtpPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-      <Route path="/reset-password" element={<ResetPasswordPage />} />
+    <>
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/verify-otp" element={<OtpPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-      {/* Role Protected Routes */}
-      <Route
-        path="/dashboard/user"
-        element={
-          <ProtectedRoutes allowedRoles={["user", "admin"]}>
-            <UserDashboard />
-          </ProtectedRoutes>
-        }
-      />
+        {/* Role Protected Routes */}
+        <Route
+          path="/dashboard/user"
+          element={
+            <ProtectedRoutes allowedRoles={["user", "admin"]}>
+              <UserDashboard />
+            </ProtectedRoutes>
+          }
+        />
 
-      <Route
-        path="/dashboard/admin"
-        element={
-          <ProtectedRoutes allowedRoles={["admin"]}>
-            <AdminDashboard />
-          </ProtectedRoutes>
-        }
-      />
+        <Route
+          path="/dashboard/admin"
+          element={
+            <ProtectedRoutes allowedRoles={["admin"]}>
+              <AdminDashboard />
+            </ProtectedRoutes>
+          }
+        />
 
-      {/* Unauthorized Page */}
-      <Route path="/unauthorized" element={<Unauthorized />} />
+        {/* Unauthorized Page */}
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-      {/* Default fallback */}
-      <Route path="*" element={<LoginPage />} />
-    </Routes>
+        {/* Default fallback */}
+        <Route path="*" element={<LoginPage />} />
+      </Routes>
+      <ToastContainer position="top-right" autoClose={1000} />
+    </>
   );
 }
 

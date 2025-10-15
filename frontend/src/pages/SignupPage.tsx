@@ -125,7 +125,9 @@ const SignupPage: React.FC = () => {
       toast.success(
         "Registration successful! Verfiy your email, OTP has already sent to your email"
       );
-      navigate("/verify-otp", { state: { email: emailToVerify } });
+      setTimeout(() => {
+        navigate("/verify-otp", { state: { email: emailToVerify } });
+      }, 1500);
     } else {
       toast.error("Registration failed!Please try again");
       console.error("Registration failed:", result);

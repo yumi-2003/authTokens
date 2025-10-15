@@ -51,9 +51,11 @@ const LoginPage: React.FC = () => {
       toast.success("Login successful!");
 
       // Redirect based on role
-      const loggedInUser = result.payload?.user;
-      if (loggedInUser?.role === "admin") navigate("/dashboard/admin");
-      else navigate("/dashboard/user");
+      setTimeout(() => {
+        const loggedInUser = result.payload?.user;
+        if (loggedInUser?.role === "admin") navigate("/dashboard/admin");
+        else navigate("/dashboard/user");
+      }, 1500);
     } else {
       toast.error("Invalid credentials. Please try again!");
     }

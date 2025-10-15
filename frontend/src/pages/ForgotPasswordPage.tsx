@@ -18,7 +18,9 @@ const ForgotPasswordPage = () => {
       return;
     }
     dispatch(forgotPassword(email));
-    navigate("/reset-password", { state: { email } });
+    setTimeout(() => {
+      navigate("/reset-password", { state: { email } });
+    }, 1500);
   };
   //show taost when message or error changes
   useEffect(() => {

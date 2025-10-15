@@ -9,6 +9,7 @@ import {
   logoutUser,
   forgotPassword,
   resetPassword,
+  refreshAccessToken,
 } from "../controllers/authController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
@@ -20,6 +21,8 @@ router.post("/verify-otp", verifyOtp);
 router.post("/google", googleLogin);
 //POST /api/auth/login
 router.post("/login", loginUser);
+//refresh token
+router.post("/refresh", refreshAccessToken);
 //POST /api/auth/logout
 router.post("/logout", logoutUser);
 //get /api/auth/me

@@ -6,9 +6,11 @@ import Otp from "../models/Otp";
 import { sentOtpEmail } from "../config/nodemailer";
 import admin from "../config/firebase";
 import jwt from "jsonwebtoken";
-import { measureMemory } from "vm";
+import { generateRefreshToken, hashRefreshToken } from "../utils/refreshToken";
+import { RefreshTokenModel } from "../models/RefreshToken";
 const validator = require("validator");
 
+// register
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
@@ -121,19 +123,29 @@ export const loginUser = async (req: Request, res: Response) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(401).json({ message: "Invalid credentials" });
-    //generate jwt
-    const token = generateToken(user._id, user.role, user.name);
+    //generate access token (JWT)
+    const accessToken = generateToken(user._id, user.role, user.name);
+    //generate refresh token (random + hashed)
+    const { refreshToken, hashedToken } = generateRefreshToken();
+    //save hashed refresh token in DB
+    await RefreshTokenModel.create({
+      userId: user._id,
+      tokenHashed: hashedToken,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    });
+    //send refresh token via HttpOnly cookie
     //send cookiet
-    res.cookie("token", token, {
+    res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // https in prod
       sameSite: "strict",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     });
 
+    //send access token in response
     res.status(200).json({
       message: "Login successful",
-      token,
+      accessToken,
       user: {
         id: user._id,
         name: user.name,
@@ -144,6 +156,51 @@ export const loginUser = async (req: Request, res: Response) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+//refresh token
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    //get refresh token from cookie
+    const token = req.cookies.refreshToken;
+    if (!token) return res.status(401).json({ message: "No refresh token" });
+    //hased to store in DB
+    const hashed = hashRefreshToken(token);
+    //find token in DB
+    const storedToken = await RefreshTokenModel.findOne({
+      tokenHashed: hashed,
+    });
+    //check if expired or existed
+    if (!storedToken || storedToken.expiresAt < new Date()) {
+      return res
+        .status(403)
+        .json({ message: "Invalid or expired refresh token" });
+    }
+    //get user
+    const user = await User.findById(storedToken.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    //create new access token
+    const newAccessToken = generateToken(user._id, user.role, user.name);
+    //rotate refresh token
+    await RefreshTokenModel.deleteOne({ tokenHashed: hashed });
+    const { refreshToken: newRefresh, hashedToken: newHash } =
+      generateRefreshToken();
+    await RefreshTokenModel.create({
+      userId: user._id,
+      tokenHashed: newHash,
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+    res.cookie("refreshToken", newRefresh, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.status(200).json({ accessToken: newAccessToken });
+  } catch (error) {
+    console.error("Refresh error:", error);
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
@@ -242,9 +299,14 @@ export const resendOtp = async (req: Request, res: Response) => {
 };
 
 //logout User
-export const logoutUser = (req: Request, res: Response) => {
+export const logoutUser = async (req: Request, res: Response) => {
   try {
-    res.clearCookie("token", {
+    const token = req.cookies.refreshToken;
+    if (token) {
+      const hashed = hashRefreshToken(token);
+      await RefreshTokenModel.deleteOne({ tokenHashed: hashed });
+    }
+    res.clearCookie("refreshToken", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
@@ -252,8 +314,8 @@ export const logoutUser = (req: Request, res: Response) => {
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.log("Logout error: ", error);
+    res.status(500).json({ message: "Server Error" });
   }
-  res.status(500).json({ message: "Server Error" });
 };
 
 //forgot password
