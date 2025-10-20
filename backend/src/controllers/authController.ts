@@ -10,6 +10,13 @@ import { generateRefreshToken, hashRefreshToken } from "../utils/refreshToken";
 import { RefreshTokenModel } from "../models/RefreshToken";
 const validator = require("validator");
 
+interface RecaptchaResponse {
+  success: boolean;
+  challenge_ts?: string;
+  hostname?: string;
+  "error-codes"?: string[];
+}
+
 // register
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -97,52 +104,89 @@ export const verifyOtp = async (req: Request, res: Response) => {
   }
 };
 
-// LOGIN USER
 export const loginUser = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, recaptchaToken } = req.body;
     if (!email || !password)
       return res
         .status(400)
         .json({ message: "Email and password are required" });
 
-    //check user exist
+    // check user exists
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
-    // check email is verified
+
+    // require reCAPTCHA after 3 failed attempts
+    if ((user.loginAttempts || 0) >= 3) {
+      if (!recaptchaToken)
+        return res.status(400).json({ message: "reCAPTCHA required" });
+
+      const secretKey = process.env.RECAPTCHA_SECRET_KEY!;
+      const params = new URLSearchParams();
+      params.append("secret", secretKey);
+      params.append("response", recaptchaToken);
+
+      const response = await fetch(
+        "https://www.google.com/recaptcha/api/siteverify",
+        {
+          method: "POST",
+          body: params,
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        }
+      );
+
+      const data = (await response.json()) as RecaptchaResponse;
+
+      if (!data.success)
+        return res
+          .status(400)
+          .json({ message: "reCAPTCHA verification failed" });
+    }
+
+    // check email verification
     if (!user.isVerified)
       return res
-        .status(404)
-        .json({ message: "Please verify your email frist" });
-    // use google login
+        .status(403)
+        .json({ message: "Please verify your email first" });
+
+    // check password exists
     if (!user.password)
       return res
         .status(400)
         .json({ message: "Please use Google login for this account" });
-    //check password
+
+    // check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
+    if (!isMatch) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+      await user.save();
       return res.status(401).json({ message: "Invalid credentials" });
-    //generate access token (JWT)
+    }
+
+    // reset loginAttempts on successful login
+    user.loginAttempts = 0;
+    await user.save();
+
+    // generate access token
     const accessToken = generateToken(user._id, user.role, user.name);
-    //generate refresh token (random + hashed)
+
+    // generate refresh token
     const { refreshToken, hashedToken } = generateRefreshToken();
-    //save hashed refresh token in DB
     await RefreshTokenModel.create({
       userId: user._id,
       tokenHashed: hashedToken,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
     });
-    //send refresh token via HttpOnly cookie
-    //send cookiet
+
+    // send refresh token via HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // https in prod
+      secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000,
     });
 
-    //send access token in response
+    // send access token
     res.status(200).json({
       message: "Login successful",
       accessToken,
@@ -162,27 +206,24 @@ export const loginUser = async (req: Request, res: Response) => {
 //refresh token
 export const refreshAccessToken = async (req: Request, res: Response) => {
   try {
-    //get refresh token from cookie
     const token = req.cookies.refreshToken;
     if (!token) return res.status(401).json({ message: "No refresh token" });
-    //hased to store in DB
+
     const hashed = hashRefreshToken(token);
-    //find token in DB
     const storedToken = await RefreshTokenModel.findOne({
       tokenHashed: hashed,
     });
-    //check if expired or existed
-    if (!storedToken || storedToken.expiresAt < new Date()) {
+    if (!storedToken || storedToken.expiresAt < new Date())
       return res
         .status(403)
         .json({ message: "Invalid or expired refresh token" });
-    }
-    //get user
+
     const user = await User.findById(storedToken.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
-    //create new access token
+
     const newAccessToken = generateToken(user._id, user.role, user.name);
-    //rotate refresh token
+
+    // rotate refresh token
     await RefreshTokenModel.deleteOne({ tokenHashed: hashed });
     const { refreshToken: newRefresh, hashedToken: newHash } =
       generateRefreshToken();
@@ -191,12 +232,14 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
       tokenHashed: newHash,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     });
+
     res.cookie("refreshToken", newRefresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
+
     res.status(200).json({ accessToken: newAccessToken });
   } catch (error) {
     console.error("Refresh error:", error);
@@ -318,29 +361,57 @@ export const logoutUser = async (req: Request, res: Response) => {
   }
 };
 
+// verfiy repcatcha verification
+const verifyRecaptcha = async (token: string) => {
+  const secretKey = process.env.RECAPTCHA_SECRET_KEY!;
+  const params = new URLSearchParams();
+  params.append("secret", secretKey);
+  params.append("response", token);
+
+  const response = await fetch(
+    "https://www.google.com/recaptcha/api/siteverify",
+    { method: "POST", body: params }
+  );
+  const data = (await response.json()) as RecaptchaResponse;
+  return data.success;
+};
+
 //forgot password
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
-    const { email } = req.body;
+    const { email, captchaToken } = req.body;
+
     if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!captchaToken)
+      return res.status(400).json({ message: "reCAPTCHA is required" });
+
+    const isCaptchaValid = await verifyRecaptcha(captchaToken);
+    if (!isCaptchaValid)
+      return res.status(400).json({ message: "reCAPTCHA verification failed" });
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
-    //delet old otp for this user
+
+    // Delete old OTPs for this user
     await Otp.deleteMany({ userId: user._id });
-    //generate otp
+
+    // Generate new OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    //save otp
+
+    // Save OTP to DB
     const otpDoc = new Otp({
       userId: user._id,
       code: otpCode,
       expiresAt: new Date(Date.now() + 1 * 60 * 1000),
     });
     await otpDoc.save();
-    //send email with otp
+
+    // Send OTP via email
     await sentOtpEmail(email, otpCode);
-    res.status(200).json({ message: "OTP send  to your email." });
+
+    res.status(200).json({ message: "OTP sent to your email." });
   } catch (error) {
-    console.log("Forgot Passwrod error", error);
+    console.error("Forgot Password error", error);
     res.status(500).json({ message: "Server error" });
   }
 };

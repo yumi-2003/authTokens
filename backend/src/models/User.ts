@@ -8,6 +8,7 @@ export interface IUser extends Document {
   googleId?: string;
   role: "user" | "admin";
   isVerified: boolean;
+  loginAttempts: number;
 }
 
 const UserSchema = new Schema<IUser>(
@@ -18,6 +19,7 @@ const UserSchema = new Schema<IUser>(
     googleId: { type: String, default: null },
     role: { type: String, enum: ["user", "admin"], default: "user" },
     isVerified: { type: Boolean, default: false },
+    loginAttempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

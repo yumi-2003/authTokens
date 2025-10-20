@@ -41,7 +41,10 @@ export const verifyOtp = createAsyncThunk(
 //loginUser
 export const loginUser = createAsyncThunk(
   "auth/login",
-  async (data: { email: string; password: string }, { rejectWithValue }) => {
+  async (
+    data: { email: string; password: string; recaptchaToken?: string },
+    { rejectWithValue }
+  ) => {
     try {
       const res = await axiosInstance.post("/auth/login", data);
       return res.data;
@@ -99,9 +102,15 @@ export const logoutUser = createAsyncThunk(
 //forgot password
 export const forgotPassword = createAsyncThunk(
   "auth/forgotPassword",
-  async (email: string, { rejectWithValue }) => {
+  async (
+    { email, captchaToken }: { email: string; captchaToken: string },
+    { rejectWithValue }
+  ) => {
     try {
-      const res = await axiosInstance.post("/auth/forgot-password", { email });
+      const res = await axiosInstance.post("/auth/forgot-password", {
+        email,
+        captchaToken,
+      });
       return res.data;
     } catch (error: any) {
       return rejectWithValue(

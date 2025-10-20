@@ -9,12 +9,14 @@ import Unauthorized from "./pages/Unauthorized";
 import ProtectedRoutes from "./components/ProtectedRoutes";
 import OtpPage from "./pages/OtpPage";
 import { ToastContainer } from "react-toastify";
+import HomePage from "./pages/HomePage";
 
 function App() {
   return (
     <>
       <Routes>
         {/* Public Routes */}
+        <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/verify-otp" element={<OtpPage />} />

@@ -1,42 +1,58 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../app/hooks";
 import { forgotPassword } from "../features/auth/authThunks";
 import { toast } from "react-toastify";
 import { Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 
-const ForgotPasswordPage = () => {
+const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+
   const dispatch = useAppDispatch();
   const { loading, message, error } = useAppSelector((state) => state.auth);
   const navigate = useNavigate();
 
-  const handlesubmit = (e: React.FormEvent) => {
+  const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!email.trim()) {
       toast.warn("Please enter your email address");
       return;
     }
-    dispatch(forgotPassword(email));
+    if (!captchaToken) {
+      toast.warn("Please complete the reCAPTCHA");
+      return;
+    }
+
+    dispatch(forgotPassword({ email, captchaToken }));
+
     setTimeout(() => {
       navigate("/reset-password", { state: { email } });
     }, 1500);
   };
-  //show taost when message or error changes
+
   useEffect(() => {
     if (message) toast.success(message);
     if (error) toast.error(error);
   }, [message, error]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-body)] px-4">
-      <div className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl shadow-lg p-8 md:p-10 border border-[var(--border-color)] transition-all">
-        <h2 className="text-2xl font-semibold text-center mb-6 text-[var(--text-primary)]">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 md:p-10">
+        <h2 className="text-2xl font-semibold text-center mb-6 text-gray-800">
           Forgot Password
         </h2>
-        <form onSubmit={handlesubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Email input */}
           <div className="relative">
             <Mail
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-bazaar-500)]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
               size={18}
             />
             <input
@@ -44,15 +60,25 @@ const ForgotPasswordPage = () => {
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 p-3 rounded-lg border border-[var(--border-color)] bg-white text-[var(--text-body)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-bazaar-200)] transition"
+              className="w-full pl-10 p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
           </div>
+
+          {/* ReCAPTCHA */}
+          <div className="mt-4">
+            <ReCAPTCHA
+              sitekey={RECAPTCHA_SITE_KEY}
+              ref={recaptchaRef}
+              onChange={(token) => {
+                if (token) setCaptchaToken(token);
+              }}
+            />
+          </div>
+
           <button
             type="submit"
             disabled={loading}
-            className={`w-full  bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)] text-white font-medium py-2 roudned-log transition${
-              loading ? "opacity-70 cursor-not-allowed" : ""
-            }`}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded-lg transition disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? "Sending..." : "Send OTP"}
           </button>
