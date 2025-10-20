@@ -144,7 +144,3 @@ This repository is provided for educational purposes. Add a license file if you 
 
 ---
 
-If you want, I can also:
-- Add a sample .env.example file content to the repo
-- Create a CONTRIBUTING.md or SECURITY.md
-- Update the frontend to show the API base URL used for local development
