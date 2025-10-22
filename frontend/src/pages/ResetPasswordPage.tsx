@@ -15,12 +15,22 @@ const ResetPasswordPage = () => {
   const location = useLocation();
   const email = location.state?.email || "";
 
+  const validatePassword = (password: string) => {
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/.test(password))
+      return "Password must be at least 8 characters with uppercase, lowercase, number, and special characters";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error(
         "Invalid or missing email. Please try again from the reset link."
       );
+      return;
+    }
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      toast.warn(passwordError);
       return;
     }
     if (!otp.trim() || !newPassword.trim()) {
@@ -36,9 +46,9 @@ const ResetPasswordPage = () => {
     }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-body)] px-4">
-      <div className="w-full max-w-md bg-[var(--bg-card)] rounded-2xl shadow-lg p-8 border border-[var(--border-color)]">
-        <h2 className="text-2xl font-bold text-center mb-6 text-[var(--text-body)]">
+    <div className="min-h-screen flex items-center justify-center bg-(--bg-body) px-4">
+      <div className="w-full max-w-md bg-(--bg-card) rounded-2xl shadow-lg p-8 border border-(--border-color)">
+        <h2 className="text-2xl font-bold text-center mb-6 text-(--text-body)">
           Reset Your Password
         </h2>
 
@@ -50,11 +60,11 @@ const ResetPasswordPage = () => {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               placeholder="Enter 6-digit OTP"
-              className="w-full pl-4 pr-10 py-3 rounded-lg border border-[var(--border-color)] bg-white text-[var(--text-body)] placeholder:text-[var(--color-bazaar-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition"
+              className="w-full pl-4 pr-10 py-3 rounded-lg border border-(--border-color) bg-white text-(--text-body) placeholder:text-(--color-bazaar-500) focus:outline-none focus:ring-2 focus:ring-(--color-accent) transition"
             />
             <KeyRound
               size={18}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--color-bazaar-500)]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-(--color-bazaar-500)"
             />
           </div>
 
@@ -65,11 +75,11 @@ const ResetPasswordPage = () => {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
-              className="w-full pl-4 pr-10 py-3 rounded-lg border border-[var(--border-color)] bg-white text-[var(--text-body)] placeholder:text-[var(--color-bazaar-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] transition"
+              className="w-full pl-4 pr-10 py-3 rounded-lg border border-(--border-color) bg-white text-(--text-body) placeholder:text-(--color-bazaar-500) focus:outline-none focus:ring-2 focus:ring-(--color-accent) transition"
             />
             <div
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-[var(--color-bazaar-500)] hover:text-[var(--color-accent)]"
+              className="absolute right-4 top-1/2 -translate-y-1/2 cursor-pointer text-(--color-bazaar-500) hover:text-(--color-accent)"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </div>
@@ -82,7 +92,7 @@ const ResetPasswordPage = () => {
             className={`w-full py-3 mt-2 font-semibold rounded-md text-white ${
               loading
                 ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[var(--color-accent)] hover:bg-[var(--color-accent-hover)]"
+                : "bg-(--color-accent) hover:bg-(--color-accent-hover)"
             } transition`}
           >
             {loading ? "Resetting..." : "Reset Password"}

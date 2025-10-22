@@ -7,7 +7,7 @@ export const generateToken = (
   name: string
 ): string => {
   const secret = process.env.JWT_SECRET!;
-  const expiresIn = "1h"; // token valid for 1 hour
+  const expiresIn = "15min"; // token valid for 15 minutes
 
   const token = jwt.sign(
     {

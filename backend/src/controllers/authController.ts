@@ -18,6 +18,59 @@ interface RecaptchaResponse {
 }
 
 // register
+// export const registerUser = async (req: Request, res: Response) => {
+//   try {
+//     const { name, email, password, role } = req.body;
+
+//     if (!name || !email || !password)
+//       return res.status(400).json({ message: "All fields are required" });
+
+//     if (!validator.isEmail(email))
+//       return res.status(400).json({ message: "Invalid email address" });
+
+//     if (!validator.isStrongPassword(password))
+//       return res.status(400).json({ message: "Password is not strong enough" });
+
+//     // Check existing user
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser)
+//       return res.status(400).json({ message: "User already exists" });
+
+//     // Hash password
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     // Create and save user first
+//     const newUser = new User({
+//       name,
+//       email,
+//       password: hashedPassword,
+//       role,
+//       isVerified: false,
+//     });
+//     await newUser.save();
+
+//     // Generate OTP (6 digits)
+//     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+//     const otpDoc = new Otp({
+//       userId: newUser._id,
+//       code: otpCode,
+//       expiresAt: new Date(Date.now() + 1 * 60 * 1000), // 1 minute
+//     });
+//     await otpDoc.save();
+
+//     // Send OTP email
+//     await sentOtpEmail(email, otpCode);
+
+//     return res
+//       .status(201)
+//       .json({ message: "User registered. OTP sent to email.", email });
+//   } catch (error) {
+//     console.error("Register error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+// registerUser (simplified)
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password, role } = req.body;
@@ -25,46 +78,24 @@ export const registerUser = async (req: Request, res: Response) => {
     if (!name || !email || !password)
       return res.status(400).json({ message: "All fields are required" });
 
-    if (!validator.isEmail(email))
-      return res.status(400).json({ message: "Invalid email address" });
-
-    if (!validator.isStrongPassword(password))
-      return res.status(400).json({ message: "Password is not strong enough" });
-
-    // Check existing user
     const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create and save user first
     const newUser = new User({
       name,
       email,
       password: hashedPassword,
       role,
-      isVerified: false,
+      isVerified: false, // still false for now
     });
     await newUser.save();
 
-    // Generate OTP (6 digits)
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-    const otpDoc = new Otp({
-      userId: newUser._id,
-      code: otpCode,
-      expiresAt: new Date(Date.now() + 1 * 60 * 1000), // 1 minute
+    res.status(201).json({
+      message: "User registered successfully. Please log in to verify.",
     });
-    await otpDoc.save();
-
-    // Send OTP email
-    await sentOtpEmail(email, otpCode);
-
-    return res
-      .status(201)
-      .json({ message: "User registered. OTP sent to email.", email });
   } catch (error) {
     console.error("Register error:", error);
     res.status(500).json({ message: "Server error" });
@@ -72,41 +103,153 @@ export const registerUser = async (req: Request, res: Response) => {
 };
 
 //  Verify OTP
-export const verifyOtp = async (req: Request, res: Response) => {
-  try {
-    const { email, otp } = req.body;
+// export const verifyOtp = async (req: Request, res: Response) => {
+//   try {
+//     const { email, otp } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found" });
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const otpDoc = await Otp.findOne({
-      userId: user._id,
-      code: otp,
-      used: false,
-      expiresAt: { $gt: new Date() },
-    });
-    await otpDoc?.save();
+//     const otpDoc = await Otp.findOne({
+//       userId: user._id,
+//       code: otp,
+//       used: false,
+//       expiresAt: { $gt: new Date() },
+//     });
+//     await otpDoc?.save();
 
-    if (!otpDoc)
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+//     if (!otpDoc)
+//       return res.status(400).json({ message: "Invalid or expired OTP" });
 
-    // Mark OTP used and user verified
-    otpDoc.used = true;
-    await otpDoc.save();
+//     // Mark OTP used and user verified
+//     otpDoc.used = true;
+//     await otpDoc.save();
 
-    user.isVerified = true;
-    await user.save();
+//     user.isVerified = true;
+//     await user.save();
 
-    return res.status(200).json({ message: "OTP verified successfully!" });
-  } catch (error) {
-    console.error("Verify OTP error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     return res.status(200).json({ message: "OTP verified successfully!" });
+//   } catch (error) {
+//     console.error("Verify OTP error:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
+// export const loginUser = async (req: Request, res: Response) => {
+//   try {
+//     const { email, password, recaptchaToken } = req.body;
+//     if (!email || !password)
+//       return res
+//         .status(400)
+//         .json({ message: "Email and password are required" });
+
+//     // check user exists
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     // require reCAPTCHA after 3 failed attempts
+//     if ((user.loginAttempts || 0) >= 3) {
+//       if (!recaptchaToken)
+//         return res.status(400).json({ message: "reCAPTCHA required" });
+
+//       const secretKey = process.env.RECAPTCHA_SECRET_KEY!;
+//       const params = new URLSearchParams();
+//       params.append("secret", secretKey);
+//       params.append("response", recaptchaToken);
+
+//       const response = await fetch(
+//         "https://www.google.com/recaptcha/api/siteverify",
+//         {
+//           method: "POST",
+//           body: params,
+//           headers: { "Content-Type": "application/x-www-form-urlencoded" },
+//         }
+//       );
+
+//       const data = (await response.json()) as RecaptchaResponse;
+
+//       if (!data.success)
+//         return res
+//           .status(400)
+//           .json({ message: "reCAPTCHA verification failed" });
+//     }
+
+//     // check email verification
+//     if (!user.isVerified)
+//       return res
+//         .status(403)
+//         .json({ message: "Please verify your email first" });
+
+//     // check password exists
+//     if (!user.password)
+//       return res
+//         .status(400)
+//         .json({ message: "Please use Google login for this account" });
+
+//     // check password match
+//     const isMatch = await bcrypt.compare(password, user.password);
+//     if (!isMatch) {
+//       user.loginAttempts = (user.loginAttempts || 0) + 1;
+//       await user.save();
+//       return res.status(401).json({ message: "Invalid credentials" });
+//     }
+
+//     // reset loginAttempts on successful login
+//     user.loginAttempts = 0;
+//     await user.save();
+
+//     // generate access token
+//     const accessToken = generateToken(user._id, user.role, user.name);
+
+//     // generate refresh token
+//     const { refreshToken, hashedToken } = generateRefreshToken();
+//     await RefreshTokenModel.create({
+//       userId: user._id,
+//       tokenHashed: hashedToken,
+//       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+//     });
+
+//     // send refresh token via HttpOnly cookie
+//     res.cookie("refreshToken", refreshToken, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === "production",
+//       sameSite: "strict",
+//       maxAge: 7 * 24 * 60 * 60 * 1000,
+//     });
+
+//     // send access token
+//     res.status(200).json({
+//       message: "Login successful",
+//       accessToken,
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//       },
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+
+//refresh token
+
+// loginUser modified
+
+interface RecaptchaResponse {
+  success: boolean;
+  challenge_ts?: string;
+  hostname?: string;
+  "error-codes"?: string[];
+}
+
+// LOGIN (with reCAPTCHA and OTP sending)
 export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password, recaptchaToken } = req.body;
+
     if (!email || !password)
       return res
         .status(400)
@@ -116,7 +259,7 @@ export const loginUser = async (req: Request, res: Response) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // require reCAPTCHA after 3 failed attempts
+    // 🔐 Require reCAPTCHA after 3 failed attempts
     if ((user.loginAttempts || 0) >= 3) {
       if (!recaptchaToken)
         return res.status(400).json({ message: "reCAPTCHA required" });
@@ -136,57 +279,61 @@ export const loginUser = async (req: Request, res: Response) => {
       );
 
       const data = (await response.json()) as RecaptchaResponse;
-
       if (!data.success)
         return res
           .status(400)
           .json({ message: "reCAPTCHA verification failed" });
     }
 
-    // check email verification
-    if (!user.isVerified)
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
-
-    // check password exists
-    if (!user.password)
-      return res
-        .status(400)
-        .json({ message: "Please use Google login for this account" });
-
-    // check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // invalid password
+    const isMatch = await bcrypt.compare(password, user.password as string);
     if (!isMatch) {
       user.loginAttempts = (user.loginAttempts || 0) + 1;
       await user.save();
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // reset loginAttempts on successful login
+    //  Password correct
     user.loginAttempts = 0;
     await user.save();
 
-    // generate access token
-    const accessToken = generateToken(user._id, user.role, user.name);
+    //  If user not yet verified → send OTP after login
+    if (!user.isVerified) {
+      await Otp.deleteMany({ userId: user._id });
 
-    // generate refresh token
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpDoc = new Otp({
+        userId: user._id,
+        code: otpCode,
+        expiresAt: new Date(Date.now() + 1 * 60 * 1000), // 1 min expiry
+      });
+      await otpDoc.save();
+
+      await sentOtpEmail(user.email, otpCode);
+
+      return res.status(200).json({
+        message: "OTP sent to your email. Please verify to complete login.",
+        requiresOtp: true,
+      });
+    }
+
+    // If already verified, issue tokens directly
+    const accessToken = generateToken(user._id, user.role, user.name);
     const { refreshToken, hashedToken } = generateRefreshToken();
+
     await RefreshTokenModel.create({
       userId: user._id,
       tokenHashed: hashedToken,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
     });
 
-    // send refresh token via HttpOnly cookie
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // send access token
     res.status(200).json({
       message: "Login successful",
       accessToken,
@@ -198,12 +345,71 @@ export const loginUser = async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-//refresh token
+// VERIFY LOGIN OTP (complete login after OTP check)
+export const verifyOtp = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp)
+      return res.status(400).json({ message: "Email and OTP are required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const otpDoc = await Otp.findOne({
+      userId: user._id,
+      code: otp,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!otpDoc)
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+
+    // Mark OTP as used + verify user
+    otpDoc.used = true;
+    await otpDoc.save();
+
+    user.isVerified = true;
+    await user.save();
+
+    // Generate tokens now
+    const accessToken = generateToken(user._id, user.role, user.name);
+    const { refreshToken, hashedToken } = generateRefreshToken();
+
+    await RefreshTokenModel.create({
+      userId: user._id,
+      tokenHashed: hashedToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      message: "OTP verified successfully! Login complete.",
+      accessToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error("Verify login OTP error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 export const refreshAccessToken = async (req: Request, res: Response) => {
   try {
     const token = req.cookies.refreshToken;
@@ -230,14 +436,14 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     await RefreshTokenModel.create({
       userId: user._id,
       tokenHashed: newHash,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     });
 
     res.cookie("refreshToken", newRefresh, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({ accessToken: newAccessToken });
@@ -323,7 +529,7 @@ export const resendOtp = async (req: Request, res: Response) => {
     await Otp.deleteMany({ userId: user._id });
     //generate new OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    //save opt with 10 min expiry
+    //save opt with 1 min expiry
     const otpDoc = new Otp({
       userId: user._id,
       code: otpCode,

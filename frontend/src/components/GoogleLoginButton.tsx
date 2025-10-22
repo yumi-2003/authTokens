@@ -1,6 +1,6 @@
 import { auth, googleProvider } from "../firebase/config";
 import { signInWithPopup } from "firebase/auth";
-import { useAppDispatch, useAppSelector } from "../app/hooks";
+import { useAppDispatch } from "../app/hooks";
 import { googleLogin } from "../features/auth/authThunks";
 import { useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
@@ -20,9 +20,14 @@ const GoogleLoginButton = () => {
       } else {
         navigate("/dashboard/user");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google login error:", error);
-      alert(error.message || "Google login failed");
+      if (error instanceof Error) {
+        alert(error.message || "Google login failed");
+      } else {
+        // Fallback for non-Error throw values
+        alert(String(error) || "Google login failed");
+      }
     }
   };
 
@@ -30,7 +35,7 @@ const GoogleLoginButton = () => {
     <button
       onClick={handleGoogleLogin}
       type="button"
-      className="w-full flex items-center justify-center gap-3 bg-white border border-[var(--border-color)] rounded-lg py-3 font-medium text-[var(--text-body) shadow-sm hover:shadow-md hover:scale-[1.02 active:scale-[0.99] transition-all duration-200"
+      className="w-full flex items-center justify-center gap-3 bg-white border border-(--border-color) rounded-lg py-3 font-medium text-[var(--text-body) shadow-sm hover:shadow-md hover:scale-[1.02 active:scale-[0.99] transition-all duration-200"
     >
       <FcGoogle size={20} />
       Continue with Google

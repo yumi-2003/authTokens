@@ -5,15 +5,19 @@ import axiosInstance from "../../api/axiosInstance";
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (
-    data: { name: string; email: string; password: string },
+    data: { name: string; email: string; password: string; role?: string },
     { rejectWithValue }
   ) => {
     try {
-      const res = await axiosInstance.post("/auth/register", data);
+      const res = await axiosInstance.post("/auth/register", {
+        ...data,
+        role: data.role || "user",
+      });
       return res.data;
     } catch (error: any) {
+      console.error("Register error:", error.response || error);
       return rejectWithValue(
-        error.response?.data?.message || "Registartion Failed"
+        error.response?.data?.message || "Registration Failed"
       );
     }
   }
@@ -39,6 +43,20 @@ export const verifyOtp = createAsyncThunk(
 );
 
 //loginUser
+// export const loginUser = createAsyncThunk(
+//   "auth/login",
+//   async (
+//     data: { email: string; password: string; recaptchaToken?: string },
+//     { rejectWithValue }
+//   ) => {
+//     try {
+//       const res = await axiosInstance.post("/auth/login", data);
+//       return res.data;
+//     } catch (error: any) {
+//       return rejectWithValue(error.response?.data?.message || "Login Failed");
+//     }
+//   }
+// );
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (
@@ -47,6 +65,15 @@ export const loginUser = createAsyncThunk(
   ) => {
     try {
       const res = await axiosInstance.post("/auth/login", data);
+
+      if (res.data.requiresOtp) {
+        return {
+          requiresOtp: true,
+          email: data.email,
+          message: res.data.message,
+        };
+      }
+
       return res.data;
     } catch (error: any) {
       return rejectWithValue(error.response?.data?.message || "Login Failed");

@@ -5,6 +5,7 @@ import { loginUser } from "../features/auth/authThunks";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import ReCAPTCHA from "react-google-recaptcha";
+import GoogleLoginButton from "../components/GoogleLoginButton";
 
 const LoginPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -21,7 +22,7 @@ const LoginPage: React.FC = () => {
   const recaptchaRef = useRef<ReCAPTCHA>(null);
   const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 
-  // Validate email/password
+  // Basic validation
   const validateField = (name: string, value: string): string | null => {
     switch (name) {
       case "email":
@@ -37,7 +38,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  // Login submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -47,10 +47,19 @@ const LoginPage: React.FC = () => {
     if (emailError) return toast.error(emailError);
     if (passwordError) return toast.error(passwordError);
 
+    // Dispatch login
     const result = await dispatch(
       loginUser({ email, password, recaptchaToken })
     );
 
+    // Successful login with OTP required
+    if (result.payload?.requiresOtp) {
+      toast.success("OTP sent to your email. Please verify to continue.");
+      navigate("/verify-otp", { state: { email } });
+      return;
+    }
+
+    // Successful login normally
     if (loginUser.fulfilled.match(result)) {
       toast.success("Login successful!");
       setRecaptchaToken("");
@@ -62,19 +71,21 @@ const LoginPage: React.FC = () => {
         if (loggedInUser?.role === "admin") navigate("/dashboard/admin");
         else navigate("/dashboard/user");
       }, 500);
-    } else {
-      const msg = result.payload as string;
-      toast.error(msg);
+      return;
+    }
 
-      if (
-        msg === "reCAPTCHA required" ||
-        msg === "reCAPTCHA verification failed"
-      ) {
-        setShowCaptcha(true);
-        recaptchaRef.current?.reset();
-        setRecaptchaToken("");
-        setCaptchaVerified(false);
-      }
+    // Login failed
+    const msg = result.payload as string;
+    toast.error(msg);
+
+    if (
+      msg === "reCAPTCHA required" ||
+      msg === "reCAPTCHA verification failed"
+    ) {
+      setShowCaptcha(true);
+      recaptchaRef.current?.reset();
+      setRecaptchaToken("");
+      setCaptchaVerified(false);
     }
   };
 
@@ -132,22 +143,20 @@ const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Forgot Password link shown only after captcha verified */}
-          {captchaVerified && (
-            <div className="text-right">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-blue-500 hover:underline font-medium"
-              >
-                Forgot password?
-              </Link>
-            </div>
-          )}
+          {/* Forgot Password */}
+          <div className="text-right">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-500 hover:underline font-medium"
+            >
+              Forgot password?
+            </Link>
+          </div>
 
-          {/* Login button */}
+          {/* Login Button */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || (showCaptcha && !captchaVerified)}
             className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? "Logging in..." : "Login"}
@@ -156,10 +165,12 @@ const LoginPage: React.FC = () => {
 
         {/* OR separator */}
         <div className="flex items-center my-4">
-          <div className="flex-grow h-px bg-gray-300"></div>
+          <div className="grow h-px bg-gray-300"></div>
           <span className="px-3 text-sm text-gray-400">or</span>
-          <div className="flex-grow h-px bg-gray-300"></div>
+          <div className="grow h-px bg-gray-300"></div>
         </div>
+
+        <GoogleLoginButton />
 
         {/* Signup link */}
         <Link
